@@ -1,0 +1,52 @@
+import com.android.builder.core.DefaultManifestParser
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+    useLibrary  'org.apache.http.legacy'
+
+    def getVersionCode = {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-list', '--count', '--first-parent', 'HEAD'
+            standardOutput = stdout
+        }
+        return Integer.parseInt(stdout.toString().trim())
+    }
+
+    defaultConfig {
+        applicationId "com.b09302083gmail.streamplayer"
+        minSdkVersion 16
+        targetSdkVersion 23
+        def manifestParser = new DefaultManifestParser()
+        versionCode getVersionCode()
+        versionName manifestParser.getVersionName(android.sourceSets.main.manifest.srcFile)
+        versionName = versionName + "." + versionCode
+    }
+    buildTypes {
+        def BOOLEAN = "boolean"
+        def TRUE = "true"
+        def FALSE = "false"
+        def QLOG = "QLOG"
+
+        debug {
+            buildConfigField BOOLEAN, QLOG, TRUE
+        }
+        release {
+            buildConfigField BOOLEAN, QLOG, FALSE
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    productFlavors {
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.2.1'
+    compile 'com.android.support:design:23.2.1'
+}
