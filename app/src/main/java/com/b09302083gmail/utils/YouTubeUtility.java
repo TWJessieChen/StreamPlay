@@ -1,6 +1,7 @@
 package com.b09302083gmail.utils;
 
 import com.b09302083gmail.model.Config;
+import com.b09302083gmail.model.VideoInfo;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -17,7 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class YouTubeUtility {
-    public final static String TAG = "YouTubeUtility";
+    private static final String TAG = YouTubeUtility.class.getSimpleName();
 
     private final static String m720p = "22";
 
@@ -25,71 +26,14 @@ public class YouTubeUtility {
 
     private final static String m1080p = "37";
 
-    static VideoInfo vi;
-
-    public static class VideoInfo {
-        String mYouTubeUrl;
-
-        String mYouTubeId;
-
-        boolean mYouTubeHd;
-
-        VideoInfo() {
-            mYouTubeUrl = null;
-            mYouTubeId = null;
-            mYouTubeHd = false;
-        }
-
-        public void setUrl(String url) {
-            mYouTubeUrl = url;
-        }
-
-        public void setId(String id) {
-            mYouTubeId = id;
-        }
-
-        public void setHdSupport(boolean mHd) {
-            mYouTubeHd = mHd;
-        }
-
-        public String getUrl() {
-            return mYouTubeUrl;
-        }
-
-        public String getId() {
-            return mYouTubeId;
-        }
-
-        public boolean getHdSupport() {
-            return mYouTubeHd;
-        }
-    }
-
-    public static VideoInfo getInstance() {
-        vi = null;
-        vi = new VideoInfo();
-
-        return vi;
-    }
-
-    /**
-     * Calculate the YouTube URL to load the video.  Includes retrieving a token that YouTube
-     * requires to play the video.
-     *
-     * @param pYouTubeFmtQuality quality of the video.  17=low, 18=high
-     * @param -bFallback         whether to fallback to lower quality in case the supplied quality
-     *                           is not available
-     * @param -pYouTubeVideoId   the id of the video
-     * @return the url string that will retrieve the video
-     */
     public static void calculateYouTubeUrl(
-            String pYouTubeFmtQuality, boolean pFallback, VideoInfo pVi) throws
+            String pYouTubeFmtQuality, boolean pFallback) throws
             IOException, ClientProtocolException, UnsupportedEncodingException {
 
         HttpClient lClient = new DefaultHttpClient();
 
         HttpGet lGetMethod =
-                new HttpGet(Config.YOUTUBE_VIDEO_INFORMATION_URL + pVi.getId());
+                new HttpGet(Config.YOUTUBE_VIDEO_INFORMATION_URL + VideoInfo.getInstance().getId());
 
         HttpResponse lResp = null;
 
@@ -156,25 +100,25 @@ public class YouTubeUtility {
                 }
 
                 if (lSearchFormat.getId() == 22 || lSearchFormat.getId() == 37) {
-                    vi.setHdSupport(true);
+                    VideoInfo.getInstance().setHdSupport(true);
                 } else {
-                    vi.setHdSupport(false);
+                    VideoInfo.getInstance().setHdSupport(false);
                 }
 
                 // Check if HD is supported in this video
                 if (pYouTubeFmtQuality.equals(m360p)) {
                     Format lHdFormat = new Format(Integer.parseInt(m720p));
                     if (lFormats.contains(lHdFormat)) {
-                        vi.setHdSupport(true);
+                        VideoInfo.getInstance().setHdSupport(true);
                     } else {
-                        vi.setHdSupport(false);
+                        VideoInfo.getInstance().setHdSupport(false);
                     }
                 }
 
                 int lIndex = lFormats.indexOf(lSearchFormat);
                 if (lIndex >= 0) {
                     VideoStream lSearchStream = lStreams.get(lIndex);
-                    vi.setUrl(lSearchStream.getUrl());
+                    VideoInfo.getInstance().setUrl(lSearchStream.getUrl());
                 }
             }
         }
@@ -188,7 +132,7 @@ public class YouTubeUtility {
                 int end = error.indexOf("<");
                 end = (end == -1) ? error.length() - 1 : end;
                 error = "error:" + error.substring(error.indexOf("=") + 1, end);
-                pVi.setUrl(error);
+                VideoInfo.getInstance().setUrl(error);
             }
         }
     }
@@ -218,10 +162,10 @@ public class YouTubeUtility {
         return lFallbackId;
     }
 
-    public static String getYouTubeUrl(VideoInfo mVi, boolean isHD) {
+    public static String getYouTubeUrl(boolean isHD) {
         try {
             String quality = getYouTubeFmtQuality(isHD);
-            calculateYouTubeUrl(quality, true, mVi);
+            calculateYouTubeUrl(quality, true);
         } catch (ClientProtocolException e) {
             QLog.e("getYouTubeUrl", "ClientProtocolException");
             e.printStackTrace();
@@ -233,7 +177,7 @@ public class YouTubeUtility {
             e.printStackTrace();
         }
 
-        return mVi.getUrl();
+        return VideoInfo.getInstance().getUrl();
     }
 
     /*

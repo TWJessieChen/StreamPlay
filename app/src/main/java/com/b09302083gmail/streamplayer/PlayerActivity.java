@@ -1,5 +1,6 @@
 package com.b09302083gmail.streamplayer;
 
+import com.b09302083gmail.model.VideoInfo;
 import com.b09302083gmail.utils.OnTaskCompleted;
 import com.b09302083gmail.utils.QLog;
 import com.b09302083gmail.utils.YouTubeUtility;
@@ -48,9 +49,12 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
 
     private AlertDialog mAlertDialog;
 
-    private class GetLinkTask extends AsyncTask<String, Integer, String> {
-        YouTubeUtility.VideoInfo vi = YouTubeUtility.getInstance();
+    @Override
+    public void onTaskCompleted() {
 
+    }
+
+    private class GetLinkTask extends AsyncTask<String, Integer, String> {
         private OnTaskCompleted listener;
 
         public GetLinkTask(OnTaskCompleted listener) {
@@ -63,10 +67,10 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
 
             Uri uri = Uri.parse(urls[0]);
             QLog.d(TAG, "Uri: " + uri);
-            vi.setId(uri.getQueryParameter("v"));
-            QLog.d(TAG, "vi: " + vi.getId());
+            VideoInfo.getInstance().setId(uri.getQueryParameter("v"));
+            QLog.d(TAG, "vi: " + VideoInfo.getInstance().getId());
 
-            String url = YouTubeUtility.getYouTubeUrl(vi, false);
+            String url = YouTubeUtility.getYouTubeUrl(false);
             QLog.d(TAG, "Url: " + url);
             if (mMediaPlayer != null && url != null) {
                 if (!(url.contains("error"))) {
@@ -102,7 +106,7 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
             if (result != "ok") {
                 Toast.makeText(PlayerActivity.this, result, Toast.LENGTH_SHORT).show();
             } else {
-                listener.onTaskCompleted(vi);
+                listener.onTaskCompleted();
             }
         }
     }
@@ -249,11 +253,6 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
     public void onPrepared(MediaPlayer mp) {
         mMediaPlayer.start();
         mMediaPlayer.setOnBufferingUpdateListener(this);
-    }
-
-    @Override
-    public void onTaskCompleted(YouTubeUtility.VideoInfo v) {
-
     }
 
     private void play(String url) {
