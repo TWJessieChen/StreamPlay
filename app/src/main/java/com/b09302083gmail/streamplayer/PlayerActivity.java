@@ -1,5 +1,6 @@
 package com.b09302083gmail.streamplayer;
 
+import com.b09302083gmail.controller.MainController;
 import com.b09302083gmail.model.VideoInfo;
 import com.b09302083gmail.utils.OnTaskCompleted;
 import com.b09302083gmail.utils.QLog;
@@ -27,7 +28,7 @@ import android.widget.Toast;
 import java.io.IOException;
 
 /**
- * Created by JessieChen on 2016/3/9.
+ * Created by JessieChen on 2016/03/28.
  */
 public class PlayerActivity extends Activity implements View.OnClickListener, Handler.Callback,
         android.view.SurfaceHolder.Callback, MediaPlayer.OnPreparedListener,
@@ -64,14 +65,7 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
         @Override
         protected String doInBackground(String... urls) {
             String result = "ok";
-
-            Uri uri = Uri.parse(urls[0]);
-            QLog.d(TAG, "Uri: " + uri);
-            VideoInfo.getInstance().setId(uri.getQueryParameter("v"));
-            QLog.d(TAG, "vi: " + VideoInfo.getInstance().getId());
-
-            String url = YouTubeUtility.getYouTubeUrl(false);
-            QLog.d(TAG, "Url: " + url);
+            String url = VideoInfo.getInstance().getUrl();
             if (mMediaPlayer != null && url != null) {
                 if (!(url.contains("error"))) {
                     try {
@@ -115,27 +109,29 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.player);
-//        if (mVideoURL == null || mVideoURL.isEmpty()) {
-//            Toast.makeText(this, "invalid video url", Toast.LENGTH_LONG).show();
-//            finish();
-//            return;
-//        }
         mSurfaceView = (SurfaceView) findViewById(R.id.surfaceview);
         mSurfaceView.setOnClickListener(this);
         mSurfaceHolder = mSurfaceView.getHolder();
         mSurfaceHolder.addCallback(this);
         mSurfaceView.setOnTouchListener(new OnTouchListenerIml());
-
-        mAlertDialog = getAlertDialog("Please enter url(youtube)","Url: ");
+        mAlertDialog = getAlertDialog("Please enter url(youtube)", "Url: ");
     }
 
     @Override
     public void onResume() {
         super.onResume();
         QLog.v(TAG, "onResume");
-        if(!mAlertDialog.isShowing()) {
+        if (!mAlertDialog.isShowing()) {
             mAlertDialog.show();
         }
+        MainController.getInstance().registerUiListener(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        QLog.v(TAG, "onPause");
+        MainController.getInstance().deregisterUiListener(this);
     }
 
     @Override
@@ -148,7 +144,7 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
         }
     }
 
-    private AlertDialog getAlertDialog(String title,String message){
+    private AlertDialog getAlertDialog(String title, String message) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(PlayerActivity.this);
         builder.setTitle(title);
@@ -165,20 +161,30 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
             public void onClick(DialogInterface dialog, int which) {
                 Toast.makeText(PlayerActivity.this, "Wait a minute...", Toast.LENGTH_LONG).show();
                 QLog.d(TAG, "Url input: " + input.getText());
-                mVideoURL = input.getText().toString().replaceAll("https://youtu.be/","https://www.youtube.com/watch?v=");
-                play(mVideoURL);
+                mVideoURL = input.getText().toString()
+                        .replaceAll("https://youtu.be/", "https://www.youtube.com/watch?v=");
+                getYoutubeUrl();
             }
         });
 
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Toast.makeText(PlayerActivity.this, "Play preset youtube video.", Toast.LENGTH_LONG).show();
-                play(mVideoURL);
+                Toast.makeText(PlayerActivity.this, "Play preset youtube video.", Toast.LENGTH_LONG)
+                        .show();
+                getYoutubeUrl();
             }
         });
 
         return builder.create();
+    }
+
+    private void getYoutubeUrl() {
+        Uri uri = Uri.parse(mVideoURL);
+        QLog.d(TAG, "Uri: " + uri);
+        VideoInfo.getInstance().setId(uri.getQueryParameter("v"));
+        QLog.d(TAG, "vi: " + VideoInfo.getInstance().getId());
+        YouTubeUtility.getYouTubeUrl(false);
     }
 
     private class OnTouchListenerIml implements View.OnTouchListener {
@@ -242,6 +248,9 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
     @Override
     public boolean handleMessage(Message msg) {
         switch (msg.what) {
+            case MainController.MSG_GET_YOUTUBE_URL_PARSER_IS_SUCCESS:
+                play();
+                break;
             default:
                 break;
         }
@@ -255,10 +264,10 @@ public class PlayerActivity extends Activity implements View.OnClickListener, Ha
         mMediaPlayer.setOnBufferingUpdateListener(this);
     }
 
-    private void play(String url) {
+    private void play() {
         reset();
         getlinktask = new GetLinkTask(this);
-        getlinktask.execute(url);
+        getlinktask.execute();
     }
 
     private void reset() {
