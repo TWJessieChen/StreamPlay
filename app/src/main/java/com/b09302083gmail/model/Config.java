@@ -8,4 +8,6 @@ public class Config {
     public static final String EXTRA_VODEO_URL = "video_url";
 
     public static final String YOUTUBE_VIDEO_INFORMATION_URL = "http://www.youtube.com/get_video_info?&video_id=";
+
+    public static final String sYoutubeToken = "Google api key";
 }
